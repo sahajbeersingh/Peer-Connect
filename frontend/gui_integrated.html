@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeerConnect - Peer Learning Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        .ios-card {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0046FF 0%, #73C8D2 100%);
+        }
+        
+        .skill-tag {
+            background: #FF9013;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .floating-action {
+            background: #0046FF;
+            box-shadow: 0 8px 32px rgba(0, 70, 255, 0.3);
+        }
+        
+        .status-open { background: #FF9013; }
+        .status-assigned { background: #0046FF; }
+        .status-closed { background: #73C8D2; }
+        
+        .leaderboard-item {
+            background: rgba(245,241,220,0.8);
+            border-left: 4px solid;
+        }
+        
+        .rank-1 { border-left-color: #FF9013; }
+        .rank-2 { border-left-color: #73C8D2; }
+        .rank-3 { border-left-color: #0046FF; }
+        .rank-other { border-left-color: #73C8D2; }
+        
+        .tech-badge {
+            background: #73C8D2;
+            color: white;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.success {
+            background: #10B981;
+        }
+        
+        .toast.error {
+            background: #EF4444;
+        }
+
+        .toast.info {
+            background: #3B82F6;
+        }
+        
+        /* Navigation button active state */
+        .nav-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: rgb(37, 99, 235);
+        }
+        
+        /* Request item hover effects */
+        .request-item {
+            transition: all 0.2s ease;
+        }
+        
+        .request-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .skill-tag {
+            transition: all 0.2s ease;
+        }
+        
+        .skill-tag:hover {
+            transform: scale(1.05);
+        }
+        
+        .leaderboard-item {
+            transition: all 0.2s ease;
+        }
+        
+        .leaderboard-item:hover {
+            transform: translateX(4px);
+        }
+        
+        .filter-btn.active {
+            background: rgba(139, 92, 246, 0.1);
+            color: rgb(126, 34, 206);
+        }
+        
+        /* Mobile responsive design */
+        @media (max-width: 768px) {
+            .nav-btn {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .ios-card {
+                padding: 16px;
+            }
+            
+            .grid-cols-1 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Notification messages container -->
+    <div id="toastContainer"></div>
+
+    <!-- Main navigation header -->
+    <nav class="ios-card rounded-none border-0 border-b border-white/20 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center relative overflow-hidden" style="background: linear-gradient(135deg, #0046FF 0%, #73C8D2 50%, #FF9013 100%);">
+                        <!-- PeerConnect logo icon -->
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="8" cy="8" r="3.5" stroke="white" stroke-width="1.5" fill="none" opacity="0.9"/>
+                            <circle cx="16" cy="16" r="3.5" stroke="white" stroke-width="1.5" fill="none" opacity="0.9"/>
+                            <path d="M11 11L13 13" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                            <circle cx="8" cy="8" r="1" fill="white" opacity="0.9"/>
+                            <circle cx="16" cy="16" r="1" fill="white" opacity="0.9"/>
+                            <path d="M12 4L12.5 5.5L14 6L12.5 6.5L12 8L11.5 6.5L10 6L11.5 5.5Z" fill="white" opacity="0.7"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl font-semibold text-gray-800">PeerConnect</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="showSection('dashboard')" class="nav-btn active text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg transition-colors">Dashboard</button>
+                    <button onclick="showSection('requests')" class="nav-btn text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg transition-colors">Requests</button>
+                    <button onclick="showSection('leaderboard')" class="nav-btn text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg transition-colors">Leaderboard</button>
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style="background: #73C8D2;" onclick="toggleUserMenu()">
+                            <span class="text-white text-sm font-medium" id="userInitials">GU</span>
+                        </div>
+                        <div id="userMenu" class="absolute right-0 mt-2 w-48 ios-card rounded-xl shadow-lg hidden z-50">
+                            <div class="py-1">
+                                <button onclick="switchAccount()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Switch Account</button>
+                                <button onclick="registerUser()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Register New User</button>
+                                <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content area -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section">
+            <!-- Welcome message and user stats -->
+            <div class="ios-card rounded-2xl p-6 mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2" id="welcomeMessage">Welcome to PeerConnect! 👋</h2>
+                        <p class="text-gray-600" id="welcomeSubtitle">Please register or select an account to get started.</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-blue-600" id="userRating">0</div>
+                        <div class="text-sm text-gray-500">Your Rating</div>
+                        <div class="flex text-orange-400 text-sm mt-1" id="ratingStars">★★★★★</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick action cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Post Help Request Card -->
+                <div class="ios-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Post a Help Request</h3>
+                    <form onsubmit="postRequest(event)" class="space-y-4">
+                        <input type="text" id="requestTitle" placeholder="What do you need help with?" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+                        <select id="requestSkill" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+                            <option value="">Select Skill</option>
+                            <option value="Python">Python</option>
+                            <option value="JavaScript">JavaScript</option>
+                            <option value="React">React</option>
+                            <option value="Node.js">Node.js</option>
+                            <option value="SQL">SQL</option>
+                            <option value="C++">C++</option>
+                            <option value="Java">Java</option>
+                            <option value="Machine Learning">Machine Learning</option>
+                        </select>
+                        <textarea id="requestDescription" placeholder="Describe your request in detail..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none h-24 resize-none" required></textarea>
+                        <select id="preferredMode" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required>
+                            <option value="">Preferred Mode</option>
+                            <option value="Google Meet">Google Meet</option>
+                            <option value="Zoom">Zoom</option>
+                            <option value="In-Person">In-Person</option>
+                            <option value="Phone Call">Phone Call</option>
+                        </select>
+                        <input type="url" id="meetingLink" placeholder="Meeting link (if online)" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <button type="submit" class="w-full floating-action text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center">
+                            <span id="postRequestText">Post Request</span>
+                            <div id="postRequestLoader" class="loading hidden ml-2"></div>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Skills Management Card -->
+                <div class="ios-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Your Skills</h3>
+                    <div class="flex flex-wrap gap-2 mb-4" id="skillsList">
+                        <span class="skill-tag px-3 py-1 rounded-full text-sm font-medium">React.js</span>
+                        <span class="skill-tag px-3 py-1 rounded-full text-sm font-medium">Python</span>
+                        <span class="skill-tag px-3 py-1 rounded-full text-sm font-medium">Node.js</span>
+                        <span class="skill-tag px-3 py-1 rounded-full text-sm font-medium">SQL</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="newSkill" placeholder="Add a skill..." class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <select id="skillLevel" class="px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                        <button onclick="addSkill()" class="px-4 py-2 tech-badge text-white rounded-xl hover:shadow-lg transition-all flex items-center">
+                            <span id="addSkillText">Add</span>
+                            <div id="addSkillLoader" class="loading hidden ml-1"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests Section -->
+        <div id="requests" class="section hidden">
+            <div class="ios-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">Help Requests</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="filterRequests('all')" class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-purple-100 text-purple-700">All</button>
+                        <button onclick="filterRequests('open')" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Open</button>
+                        <button onclick="filterRequests('assigned')" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Assigned</button>
+                        <button onclick="filterRequests('closed')" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Closed</button>
+                    </div>
+                </div>
+
+                <div class="space-y-4" id="requestsList">
+                    <!-- Requests will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Section -->
+        <div id="leaderboard" class="section hidden">
+            <div class="ios-card rounded-2xl p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">Top Contributors</h3>
+                <div class="space-y-3" id="leaderboardList">
+                    <!-- Leaderboard will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Modal for session feedback -->
+    <div id="ratingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="ios-card rounded-2xl p-6 m-4 max-w-md w-full">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Rate Your Helper</h3>
+            <div class="space-y-4">
+                <div class="flex justify-center space-x-2 mb-4" id="ratingStarsInput">
+                    <span class="text-2xl cursor-pointer" data-rating="1">☆</span>
+                    <span class="text-2xl cursor-pointer" data-rating="2">☆</span>
+                    <span class="text-2xl cursor-pointer" data-rating="3">☆</span>
+                    <span class="text-2xl cursor-pointer" data-rating="4">☆</span>
+                    <span class="text-2xl cursor-pointer" data-rating="5">☆</span>
+                </div>
+                <textarea id="ratingComment" placeholder="Add a comment (optional)..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none h-24 resize-none"></textarea>
+                <div class="flex space-x-3">
+                    <button onclick="closeRatingModal()" class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button onclick="submitRating()" class="flex-1 py-3 floating-action text-white rounded-xl font-medium hover:shadow-lg transition-all">Submit Rating</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Account Management Modal -->
+    <div id="userManagementModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="ios-card rounded-2xl p-6 m-4 max-w-md w-full">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4" id="userManagementTitle">Switch Account</h3>
+            <div class="space-y-4" id="userManagementContent">
+                <!-- User selection content will be added dynamically -->
+            </div>
+            <div class="flex space-x-3 mt-4">
+                <button onclick="closeUserManagementModal()" class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+                <button onclick="processUserManagement()" class="flex-1 py-3 floating-action text-white rounded-xl font-medium hover:shadow-lg transition-all" id="userManagementAction">Switch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Registration Modal -->
+    <div id="registrationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="ios-card rounded-2xl p-6 m-4 max-w-md w-full">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Register New User</h3>
+            <div class="space-y-4" id="registrationContent">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input type="text" id="regName" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Enter your full name" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="regEmail" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Enter your email" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                    <input type="text" id="regDept" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" placeholder="Enter your department" required>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-4">
+                <button onclick="closeRegistrationModal()" class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+                <button onclick="registerNewUser()" class="flex-1 py-3 floating-action text-white rounded-xl font-medium hover:shadow-lg transition-all">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API server configuration
+        const API_BASE_URL = 'https://peer-connect-lqsy.onrender.com/api';
+        
+        // Current user information - starts as guest
+        let currentUser = {
+            id: null,
+            name: "Guest User",
+            email: "guest@example.com",
+            rating_avg: 0,
+            dept: "Guest"
+        };
+        
+        // State variables for the application
+        let currentRating = 0;
+        let currentRequestToRate = null;
+        let userManagementMode = 'switch';
+        let availableUsers = [];
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PeerConnect App Started');
+            console.log('API Server:', API_BASE_URL);
+            console.log('Current User:', currentUser);
+            
+            initializeApp();
+            testAPIConnection();
+        });
+
+        // ========== MAIN APPLICATION FUNCTIONS ==========
+
+        // Set up the application and load initial data
+        async function initializeApp() {
+            try {
+                updateUserUI();
+                
+                // Load existing users but don't auto-login
+                await loadExistingUsers();
+                
+                // Load data if we have a registered user
+                if (currentUser.id && currentUser.email !== 'guest@example.com') {
+                    await loadRequests();
+                    await loadLeaderboard();
+                } else {
+                    // Show message for guest users
+                    document.getElementById('requestsList').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            Please register or select an account to view requests.
+                        </div>
+                    `;
+                    document.getElementById('leaderboardList').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            Please register or select an account to view leaderboard.
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error starting app:', error);
+                showError('Failed to load application data');
+            }
+        }
+
+        // Test if we can connect to the API server
+        async function testAPIConnection() {
+            console.group('Testing API Connection');
+            try {
+                console.log('Testing students endpoint...');
+                const students = await apiCall('/students');
+                console.log('Students endpoint working. Found:', students.length, 'students');
+                
+                console.log('Testing requests endpoint...');
+                const requests = await apiCall('/requests');
+                console.log('Requests endpoint working. Found:', requests.length, 'requests');
+                
+                console.log('Testing leaderboard endpoint...');
+                const leaderboard = await apiCall('/ratings/leaderboard');
+                console.log('Leaderboard endpoint working. Found:', leaderboard.length, 'entries');
+                
+                console.log('All API endpoints are working correctly!');
+            } catch (error) {
+                console.error('API Connection Test Failed:', error);
+            }
+            console.groupEnd();
+        }
+
+        // Switch between different sections of the app
+        function showSection(sectionName) {
+            // Hide all sections first
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            // Show the selected section
+            document.getElementById(sectionName).classList.remove('hidden');
+            
+            // Update navigation buttons to show active state
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // ========== API COMMUNICATION FUNCTIONS ==========
+
+        // Make API calls with proper error handling
+        async function apiCall(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            
+            console.group(`API Call: ${options.method || 'GET'} ${url}`);
+            console.log('Request Details:', options);
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                console.log('Response Status:', response.status);
+                console.log('Response OK:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    console.groupEnd();
+                    
+                    let errorMessage = `HTTP ${response.status}: `;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage += errorJson.message || errorJson.error || errorText;
+                    } catch (e) {
+                        errorMessage += errorText || 'Unknown error occurred';
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    console.log('API Success:', data);
+                    console.groupEnd();
+                    return data;
+                } else {
+                    console.log('API Success (No JSON content)');
+                    console.groupEnd();
+                    return { success: true, status: response.status };
+                }
+                
+            } catch (error) {
+                console.error('API Call Failed:', error);
+                console.groupEnd();
+                throw error;
+            }
+        }
+
+        // Get all registered students
+        async function getAllStudents() {
+            try {
+                const students = await apiCall('/students');
+                return Array.isArray(students) ? students : [];
+            } catch (error) {
+                console.error('Error fetching students:', error);
+                return [];
+            }
+        }
+
+        // Register a new student user
+        async function registerStudent(userData) {
+            try {
+                return await apiCall('/students', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: userData.name,
+                        email: userData.email,
+                        dept: userData.dept
+                    })
+                });
+            } catch (error) {
+                console.error('Registration error:', error);
+                if (error.message.includes('duplicate key') || error.message.includes('23505')) {
+                    throw new Error('Email already exists. Please use a different email.');
+                }
+                throw error;
+            }
+        }
+
+        // Add a skill to student profile
+        async function addStudentSkill(email, skillName, level) {
+            try {
+                return await apiCall('/student-skills', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: email,
+                        skill_name: skillName,
+                        level: level
+                    })
+                });
+            } catch (error) {
+                console.error('Error adding skill:', error);
+                throw error;
+            }
+        }
+
+        // Create a new help request
+        async function createRequest(requestData) {
+            try {
+                console.group('Creating New Request');
+                console.log('Request Data:', requestData);
+                
+                const payload = {
+                    requester_email: requestData.requester_email,
+                    title: requestData.title,
+                    description: requestData.description,
+                    skill_name: requestData.skill_name,
+                    preferred_mode: requestData.preferred_mode
+                };
+                
+                if (requestData.meeting_link) {
+                    payload.meeting_link = requestData.meeting_link;
+                }
+                
+                console.log('Final request payload:', payload);
+                const result = await apiCall('/requests', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log('Request created successfully:', result);
+                console.groupEnd();
+                return result;
+                
+            } catch (error) {
+                console.error('Error creating request:', error);
+                console.groupEnd();
+                throw error;
+            }
+        }
+
+        // Get all help requests from the server
+        async function getAllRequests() {
+            try {
+                const requests = await apiCall('/requests');
+                
+                // Log request details for debugging
+                console.log('Raw API response for requests:', requests);
+                if (requests.length > 0) {
+                    console.log('First request details:', requests[0]);
+                }
+                
+                // Add student names to requests for better display
+                const enhancedRequests = await Promise.all(
+                    requests.map(async (request) => {
+                        try {
+                            // Get requester details
+                            const requester = await getStudentById(request.requester_id);
+                            request.requester_name = requester?.name || 'Unknown';
+                            request.requester_email = requester?.email || 'Unknown';
+                            
+                            // Get helper details if assigned
+                            if (request.helper_id) {
+                                const helper = await getStudentById(request.helper_id);
+                                request.helper_name = helper?.name || 'Unknown';
+                                request.helper_email = helper?.email || 'Unknown';
+                            }
+                            
+                            return request;
+                        } catch (error) {
+                            console.error('Error enhancing request:', error);
+                            return request;
+                        }
+                    })
+                );
+                
+                return enhancedRequests;
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                throw error;
+            }
+        }
+
+        // Get student details by ID
+        async function getStudentById(studentId) {
+            try {
+                return await apiCall(`/students/${studentId}`);
+            } catch (error) {
+                console.error(`Error fetching student ${studentId}:`, error);
+                return null;
+            }
+        }
+
+        // Update request status (currently not working due to API limitations)
+        async function updateRequestStatus(requestId, status) {
+            try {
+                return await apiCall(`/requests/${requestId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status })
+                });
+            } catch (error) {
+                console.error('Error updating request:', error);
+                throw error;
+            }
+        }
+
+        // Assign a helper to a request
+        async function assignHelper(requestId, helperEmail, remarks = "I can help with this") {
+            try {
+                console.group('Assigning Helper');
+                console.log('Creating assignment for request:', requestId, 'by helper:', helperEmail);
+                
+                const payload = {
+                    request_id: requestId,
+                    helper_email: helperEmail,
+                    remarks: remarks
+                };
+                
+                console.log('Assignment payload:', payload);
+                const result = await apiCall('/assignments', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log('Assignment created successfully:', result);
+                console.groupEnd();
+                return result;
+                
+            } catch (error) {
+                console.error('Error assigning helper:', error);
+                console.groupEnd();
+                throw error;
+            }
+        }
+
+        // Submit a rating for a completed session
+        async function submitRatingToAPI(assignmentId, raterEmail, score, comment = "") {
+            try {
+                const payload = {
+                    assignment_id: assignmentId,
+                    rater_email: raterEmail,
+                    score: score,
+                    comment: comment
+                };
+                
+                console.group('Submitting Rating');
+                console.log('Submitting rating:', payload);
+                const result = await apiCall('/ratings', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                console.log('Rating submitted successfully:', result);
+                console.groupEnd();
+                return result;
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                console.groupEnd();
+                throw error;
+            }
+        }
+
+        // Get leaderboard data
+        async function getLeaderboard() {
+            try {
+                return await apiCall('/ratings/leaderboard');
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+                return [];
+            }
+        }
+
+        // ========== USER ACCOUNT MANAGEMENT ==========
+
+        // Load existing users for account switching
+        async function loadExistingUsers() {
+            try {
+                availableUsers = await getAllStudents();
+                console.log('Available users:', availableUsers);
+                
+                if (availableUsers.length === 0) {
+                    showInfo('No existing users found. Please register a new user.');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showInfo('Please register a new user to get started.');
+            }
+        }
+
+        // Open user registration modal
+        function registerUser() {
+            document.getElementById('userMenu').classList.add('hidden');
+            document.getElementById('registrationModal').classList.remove('hidden');
+            document.getElementById('registrationModal').classList.add('flex');
+        }
+
+        // Close registration modal
+        function closeRegistrationModal() {
+            document.getElementById('registrationModal').classList.add('hidden');
+            document.getElementById('registrationModal').classList.remove('flex');
+        }
+
+        // Register a new user account
+        async function registerNewUser() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const dept = document.getElementById('regDept').value;
+
+            if (!name || !email || !dept) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const userData = {
+                    name: name,
+                    email: email,
+                    dept: dept
+                };
+
+                console.log('Registering user:', userData);
+                
+                const result = await registerStudent(userData);
+
+                if (result) {
+                    const newUser = {
+                        id: result.id || result.student_id || Date.now(),
+                        name: name,
+                        email: email,
+                        rating_avg: 0,
+                        dept: dept
+                    };
+                    
+                    // Add to available users list
+                    availableUsers.push(newUser);
+                    
+                    // Auto-login to the newly created user
+                    currentUser = newUser;
+                    
+                    updateUserUI();
+                    closeRegistrationModal();
+                    showSuccess(`Successfully registered as ${name}!`);
+                    
+                    // Refresh application data
+                    await initializeApp();
+                } else {
+                    showError('Registration failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError(error.message || 'Registration failed. Please try a different email.');
+            }
+        }
+
+        // Update user interface with current user info
+        function updateUserUI() {
+            if (currentUser.id && currentUser.email !== 'guest@example.com') {
+                document.getElementById('welcomeMessage').textContent = `Welcome back, ${currentUser.name}! 👋`;
+                document.getElementById('welcomeSubtitle').textContent = 'Ready to help or learn something new today?';
+                document.getElementById('userInitials').textContent = getInitials(currentUser.name);
+                document.getElementById('userRating').textContent = currentUser.rating_avg;
+                updateRatingStars(currentUser.rating_avg);
+            } else {
+                document.getElementById('welcomeMessage').textContent = `Welcome to PeerConnect! 👋`;
+                document.getElementById('welcomeSubtitle').textContent = 'Please register or select an account to get started.';
+                document.getElementById('userInitials').textContent = 'GU';
+                document.getElementById('userRating').textContent = '0';
+                updateRatingStars(0);
+            }
+        }
+
+        // ========== DATA LOADING AND DISPLAY ==========
+
+        // Load and display help requests
+        async function loadRequests() {
+            try {
+                const requestsList = document.getElementById('requestsList');
+                requestsList.innerHTML = '<div class="text-center py-4 text-gray-500">Loading requests...</div>';
+                
+                const requests = await getAllRequests();
+                
+                if (requests.length === 0) {
+                    requestsList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            No requests found. Be the first to post one!
+                        </div>
+                    `;
+                    return;
+                }
+                
+                requestsList.innerHTML = '';
+                requests.forEach(request => {
+                    const requestItem = createRequestItem(request);
+                    requestsList.appendChild(requestItem);
+                });
+                
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                const requestsList = document.getElementById('requestsList');
+                requestsList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        Failed to load requests. Please try again.
+                    </div>
+                `;
+            }
+        }
+
+        // Load and display leaderboard
+        async function loadLeaderboard() {
+            try {
+                const leaderboardList = document.getElementById('leaderboardList');
+                leaderboardList.innerHTML = '<div class="text-center py-4 text-gray-500">Loading leaderboard...</div>';
+                
+                const leaderboard = await getLeaderboard();
+                
+                if (leaderboard.length === 0) {
+                    leaderboardList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            No leaderboard data available.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                leaderboardList.innerHTML = '';
+                leaderboard.forEach((student, index) => {
+                    const rankItem = createLeaderboardItem(student, index);
+                    leaderboardList.appendChild(rankItem);
+                });
+                
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                const leaderboardList = document.getElementById('leaderboardList');
+                leaderboardList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        Failed to load leaderboard.
+                    </div>
+                `;
+            }
+        }
+
+        // ========== UI COMPONENT CREATION ==========
+
+        // Create a request item for display
+        function createRequestItem(request) {
+            // Normalize status for consistent comparison
+            const status = request.status?.toLowerCase() || 'open';
+            const isMyRequest = request.requester_email === currentUser.email;
+            const isAssignedToMe = request.helper_email === currentUser.email;
+            
+            console.log(`Creating request item ${request.id}:`, {
+                status: request.status,
+                normalizedStatus: status,
+                isMyRequest,
+                isAssignedToMe,
+                currentUser: currentUser.email,
+                requester: request.requester_email,
+                helper: request.helper_email
+            });
+            
+            const requestItem = document.createElement('div');
+            requestItem.className = `request-item ios-card rounded-xl p-4 border-l-4 ${
+                status === 'open' ? 'border-orange-400' : 
+                status === 'assigned' ? 'border-blue-400' : 
+                'border-green-400'
+            }`;
+            requestItem.setAttribute('data-status', status);
+            requestItem.setAttribute('data-request-id', request.id);
+            
+            requestItem.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${escapeHtml(request.title || 'Untitled Request')}</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <span class="skill-badge px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">${escapeHtml(request.skill_name || 'General')}</span>
+                            ${isMyRequest ? '<span class="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Your Request</span>' : ''}
+                            ${isAssignedToMe ? '<span class="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">You are helping</span>' : ''}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">From: ${escapeHtml(request.requester_name || request.requester_email || 'Unknown')}</p>
+                        ${request.helper_name ? `<p class="text-xs text-gray-500">Helper: ${escapeHtml(request.helper_name)}</p>` : ''}
+                        ${request.meeting_link ? `<p class="text-xs text-blue-500 mt-1"><a href="${request.meeting_link}" target="_blank" class="underline">Join Meeting</a></p>` : ''}
+                    </div>
+                    <span class="${
+                        status === 'open' ? 'status-open' : 
+                        status === 'assigned' ? 'status-assigned' : 
+                        'status-closed'
+                    } px-3 py-1 rounded-full text-xs font-medium text-white">
+                        ${request.status || 'Open'}
+                    </span>
+                </div>
+                <p class="text-gray-700 text-sm mb-3">${escapeHtml(request.description || 'No description provided')}</p>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-500">${formatDate(request.created_at)}</span>
+                    ${getRequestActionButton(request, status, isMyRequest, isAssignedToMe)}
+                </div>
+            `;
+            
+            return requestItem;
+        }
+
+        // Create a leaderboard item for display
+        function createLeaderboardItem(student, index) {
+            const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+            const rankColor = index === 0 ? '#FF9013' : index === 1 ? '#73C8D2' : index === 2 ? '#0046FF' : '#73C8D2';
+            
+            const rankItem = document.createElement('div');
+            rankItem.className = `leaderboard-item ${rankClass} rounded-xl p-4`;
+            rankItem.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style="background: ${rankColor};">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${escapeHtml(student.name || 'Unknown User')}</h4>
+                            <p class="text-sm text-gray-600">${escapeHtml(student.email || 'No email')}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-gray-800">${student.rating_avg || 0}</div>
+                        <div class="text-xs text-gray-500">rating</div>
+                    </div>
+                </div>
+            `;
+            
+            return rankItem;
+        }
+
+        // ========== USER INTERACTION HANDLERS ==========
+
+        // Add a new skill to user profile
+        async function addSkill() {
+            const skillInput = document.getElementById('newSkill');
+            const skillLevel = document.getElementById('skillLevel');
+            const skill = skillInput.value.trim();
+            const level = skillLevel.value;
+            
+            if (!skill) {
+                showError('Please enter a skill name');
+                return;
+            }
+            
+            // Check if user is registered
+            if (!currentUser.id || currentUser.email === 'guest@example.com') {
+                showError('Please register or select an account first');
+                registerUser();
+                return;
+            }
+            
+            const addSkillBtn = document.getElementById('addSkillText');
+            const addSkillLoader = document.getElementById('addSkillLoader');
+            
+            addSkillBtn.textContent = 'Adding...';
+            addSkillLoader.classList.remove('hidden');
+            
+            try {
+                const result = await addStudentSkill(currentUser.email, skill, level);
+                
+                if (result) {
+                    const skillsList = document.getElementById('skillsList');
+                    const skillTag = document.createElement('span');
+                    skillTag.className = 'skill-tag px-3 py-1 rounded-full text-sm font-medium';
+                    skillTag.textContent = `${skill} (${level})`;
+                    skillsList.appendChild(skillTag);
+                    
+                    skillInput.value = '';
+                    showSuccess('Skill added successfully!');
+                } else {
+                    showError('Failed to add skill');
+                }
+            } catch (error) {
+                console.error('Error adding skill:', error);
+                showError('Failed to add skill. Please try again.');
+            } finally {
+                addSkillBtn.textContent = 'Add';
+                addSkillLoader.classList.add('hidden');
+            }
+        }
+
+        // Post a new help request
+        async function postRequest(event) {
+            event.preventDefault();
+            
+            // Check if user is registered
+            if (!currentUser.id || currentUser.email === 'guest@example.com') {
+                showError('Please register or select an account first');
+                registerUser();
+                return;
+            }
+            
+            const title = document.getElementById('requestTitle').value;
+            const skill = document.getElementById('requestSkill').value;
+            const description = document.getElementById('requestDescription').value;
+            const preferredMode = document.getElementById('preferredMode').value;
+            const meetingLink = document.getElementById('meetingLink').value;
+            
+            if (title && skill && description && preferredMode) {
+                const postRequestBtn = document.getElementById('postRequestText');
+                const postRequestLoader = document.getElementById('postRequestLoader');
+                
+                postRequestBtn.textContent = 'Posting...';
+                postRequestLoader.classList.remove('hidden');
+                
+                try {
+                    const requestData = {
+                        requester_email: currentUser.email,
+                        title: title,
+                        description: description,
+                        skill_name: skill,
+                        preferred_mode: preferredMode
+                    };
+                    
+                    // Add meeting link if provided
+                    if (meetingLink) {
+                        requestData.meeting_link = meetingLink;
+                    }
+                    
+                    console.log('Attempting to post request:', requestData);
+                    
+                    const result = await createRequest(requestData);
+                    
+                    if (result) {
+                        // Clear the form
+                        document.getElementById('requestTitle').value = '';
+                        document.getElementById('requestSkill').value = '';
+                        document.getElementById('requestDescription').value = '';
+                        document.getElementById('preferredMode').value = '';
+                        document.getElementById('meetingLink').value = '';
+                        
+                        showSuccess('Request posted successfully! 🎉');
+                        
+                        // Refresh requests and show requests section
+                        await loadRequests();
+                        showSection('requests');
+                    } else {
+                        showError('Failed to post request. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error posting request:', error);
+                    showError('Failed to post request. Check console for details.');
+                } finally {
+                    postRequestBtn.textContent = 'Post Request';
+                    postRequestLoader.classList.add('hidden');
+                }
+            } else {
+                showError('Please fill in all required fields');
+            }
+        }
+
+        // Store assignments to track session progress
+        let assignmentsMap = new Map();
+
+        // Accept a help request
+        async function acceptRequest(requestId) {
+            // Check if user is registered
+            if (!currentUser.id || currentUser.email === 'guest@example.com') {
+                showError('Please register or select an account first');
+                registerUser();
+                return;
+            }
+            
+            try {
+                console.log('Accepting request:', requestId);
+                
+                const result = await assignHelper(requestId, currentUser.email, "I can help with this request");
+                
+                if (result && result.assignment) {
+                    console.log('Assignment created successfully:', result);
+                    
+                    // Store the assignment ID for later rating
+                    const assignmentId = result.assignment.id;
+                    assignmentsMap.set(requestId, assignmentId);
+                    console.log(`Stored assignment ${assignmentId} for request ${requestId}`);
+                    
+                    showSuccess('Request accepted! 🎉 You are now helping with this request.');
+                    
+                    // Refresh requests to show updated status
+                    await loadRequests();
+                    
+                } else {
+                    showError('Failed to accept request - no assignment created');
+                }
+            } catch (error) {
+                console.error('Error accepting request:', error);
+                showError('Failed to accept request. Please try again.');
+            }
+        }
+
+        // End session and open rating modal
+        async function endSessionAndRate(requestId) {
+            // Check if user is registered
+            if (!currentUser.id || currentUser.email === 'guest@example.com') {
+                showError('Please register or select an account first');
+                registerUser();
+                return;
+            }
+            
+            // Get the assignment ID from our storage
+            const assignmentId = assignmentsMap.get(requestId);
+            
+            if (!assignmentId) {
+                console.error('No assignment ID found for request:', requestId);
+                showError('Cannot rate this session. Assignment data missing.');
+                return;
+            }
+            
+            // Store the assignment ID for rating
+            currentRequestToRate = {
+                requestId: requestId,
+                assignmentId: assignmentId
+            };
+            
+            console.log(`Starting rating process for assignment ${assignmentId}`);
+            
+            // Open rating modal
+            openRatingModal();
+        }
+
+        // Submit rating for a completed session
+        async function submitRating() {
+            if (currentRating > 0 && currentRequestToRate) {
+                try {
+                    const result = await submitRatingToAPI(
+                        currentRequestToRate.assignmentId,
+                        currentUser.email,
+                        currentRating,
+                        document.getElementById('ratingComment').value || ''
+                    );
+                    
+                    if (result) {
+                        // Update request status to closed
+                        await updateRequestStatus(currentRequestToRate.requestId, 'Closed');
+                        
+                        // Remove from assignments map
+                        assignmentsMap.delete(currentRequestToRate.requestId);
+                        
+                        showSuccess(`Rating submitted: ${currentRating} stars! Session completed.`);
+                        
+                        // Refresh data
+                        await loadRequests();
+                        await loadLeaderboard();
+                        
+                        // Update current user's rating if needed
+                        await refreshCurrentUser();
+                        
+                    } else {
+                        showError('Failed to submit rating');
+                    }
+                } catch (error) {
+                    console.error('Error submitting rating:', error);
+                    showError('Failed to submit rating. Please try again.');
+                }
+                
+                closeRatingModal();
+            } else {
+                showError('Please select a rating before submitting.');
+            }
+        }
+
+        // Refresh current user data from server
+        async function refreshCurrentUser() {
+            if (currentUser.id && currentUser.email !== 'guest@example.com') {
+                try {
+                    const updatedUser = await getStudentById(currentUser.id);
+                    if (updatedUser) {
+                        currentUser = { ...currentUser, ...updatedUser };
+                        updateUserUI();
+                    }
+                } catch (error) {
+                    console.error('Error refreshing user data:', error);
+                }
+            }
+        }
+
+        // Filter requests by status
+        function filterRequests(status) {
+            const requests = document.querySelectorAll('.request-item');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            
+            // Update filter button states
+            filterBtns.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show/hide requests based on filter
+            requests.forEach(request => {
+                if (status === 'all' || request.getAttribute('data-status') === status) {
+                    request.style.display = 'block';
+                } else {
+                    request.style.display = 'none';
+                }
+            });
+        }
+
+        // Get the appropriate action button for a request
+        function getRequestActionButton(request, status, isMyRequest, isAssignedToMe) {
+            console.log(`Creating action button for request ${request.id}:`, {
+                status: status,
+                isMyRequest: isMyRequest,
+                isAssignedToMe: isAssignedToMe,
+                currentUser: currentUser.email,
+                requester: request.requester_email
+            });
+
+            // If it's my own request
+            if (isMyRequest) {
+                if (status === 'open') {
+                    return `<span class="text-xs text-gray-500">Waiting for helper...</span>`;
+                } else if (status === 'assigned') {
+                    return `<span class="text-xs text-gray-500">Being helped by ${request.helper_name || request.helper_email || 'someone'}</span>`;
+                } else {
+                    return `<span class="text-xs text-gray-500">Completed</span>`;
+                }
+            } 
+            // If it's not my request
+            else {
+                if (status === 'open') {
+                    return `<button onclick="acceptRequest(${request.id})" class="px-4 py-2 tech-badge text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all">Accept Request</button>`;
+                } else if (status === 'assigned' && isAssignedToMe) {
+                    return `<button onclick="endSessionAndRate(${request.id})" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all">End Session & Rate</button>`;
+                } else if (status === 'assigned') {
+                    return `<span class="text-xs text-gray-500">Already assigned to ${request.helper_name || request.helper_email || 'someone'}</span>`;
+                } else {
+                    return `<span class="text-xs text-gray-500">Completed</span>`;
+                }
+            }
+        }
+
+        // ========== USER ACCOUNT FUNCTIONS ==========
+
+        // Toggle user menu visibility
+        function toggleUserMenu() {
+            const userMenu = document.getElementById('userMenu');
+            userMenu.classList.toggle('hidden');
+        }
+
+        // Open account switching modal
+        function switchAccount() {
+            userManagementMode = 'switch';
+            document.getElementById('userManagementTitle').textContent = 'Switch Account';
+            document.getElementById('userManagementAction').textContent = 'Switch';
+            
+            const content = document.getElementById('userManagementContent');
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Account</label>
+                        <select id="accountSelect" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <option value="">Select a user...</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            // Load users for the dropdown
+            loadUsersForSwitch();
+            
+            document.getElementById('userMenu').classList.add('hidden');
+            document.getElementById('userManagementModal').classList.remove('hidden');
+            document.getElementById('userManagementModal').classList.add('flex');
+        }
+
+        // Load users for account switching
+        async function loadUsersForSwitch() {
+            try {
+                const select = document.getElementById('accountSelect');
+                
+                select.innerHTML = '<option value="">Select a user...</option>';
+                
+                if (availableUsers.length === 0) {
+                    select.innerHTML += '<option value="">No users found. Please register first.</option>';
+                } else {
+                    availableUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.name} (${user.email})`;
+                        if (user.id === currentUser.id) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading users for switch:', error);
+                const select = document.getElementById('accountSelect');
+                select.innerHTML = '<option value="">Error loading users</option>';
+            }
+        }
+
+        // Process user account management action
+        function processUserManagement() {
+            if (userManagementMode === 'switch') {
+                const accountSelect = document.getElementById('accountSelect');
+                const selectedValue = accountSelect.value;
+                
+                if (!selectedValue) {
+                    showError('Please select an account');
+                    return;
+                }
+                
+                const selectedText = accountSelect.options[accountSelect.selectedIndex].text;
+                const [name, emailPart] = selectedText.split(' (');
+                const email = emailPart.replace(')', '');
+                
+                // Find the selected user from available users
+                const selectedUser = availableUsers.find(user => user.id == selectedValue);
+                
+                if (selectedUser) {
+                    currentUser = selectedUser;
+                    updateUserUI();
+                    closeUserManagementModal();
+                    showSuccess(`Switched to ${currentUser.name}`);
+                    
+                    // Refresh data with new user
+                    initializeApp();
+                } else {
+                    showError('Selected user not found');
+                }
+            }
+        }
+
+        // Close user management modal
+        function closeUserManagementModal() {
+            document.getElementById('userManagementModal').classList.add('hidden');
+            document.getElementById('userManagementModal').classList.remove('flex');
+        }
+
+        // Log out current user
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentUser = {
+                    id: null,
+                    name: "Guest User",
+                    email: "guest@example.com",
+                    rating_avg: 0,
+                    dept: "Guest"
+                };
+                updateUserUI();
+                showSuccess('Logged out successfully');
+                document.getElementById('userMenu').classList.add('hidden');
+                initializeApp();
+            }
+        }
+
+        // ========== RATING SYSTEM FUNCTIONS ==========
+
+        // Open rating modal
+        function openRatingModal() {
+            // Reset rating stars
+            currentRating = 0;
+            const stars = document.querySelectorAll('#ratingStarsInput span');
+            stars.forEach(star => {
+                star.textContent = '☆';
+            });
+            document.getElementById('ratingComment').value = '';
+            
+            document.getElementById('ratingModal').classList.remove('hidden');
+            document.getElementById('ratingModal').classList.add('flex');
+        }
+
+        // Close rating modal
+        function closeRatingModal() {
+            document.getElementById('ratingModal').classList.add('hidden');
+            document.getElementById('ratingModal').classList.remove('flex');
+            currentRequestToRate = null;
+        }
+
+        // ========== HELPER UTILITY FUNCTIONS ==========
+
+        // Escape HTML to prevent XSS attacks
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Get user initials for avatar
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            if (!dateString) {
+                return 'Today';
+            }
+            
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffTime = Math.abs(now - date);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (isNaN(date.getTime())) {
+                    return 'Today';
+                }
+                
+                if (diffDays === 1) {
+                    return 'Today';
+                } else if (diffDays === 2) {
+                    return 'Yesterday';
+                } else if (diffDays <= 7) {
+                    return `${diffDays - 1} days ago`;
+                } else {
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+            } catch (error) {
+                return 'Today';
+            }
+        }
+
+        // Update rating stars display
+        function updateRatingStars(rating) {
+            const starsContainer = document.getElementById('ratingStars');
+            if (!starsContainer) return;
+            
+            const fullStars = Math.floor(rating);
+            let starsHTML = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                starsHTML += i <= fullStars ? '★' : '☆';
+            }
+            
+            starsContainer.innerHTML = starsHTML;
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'success') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Show toast with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Hide and remove toast after delay
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toastContainer.contains(toast)) {
+                        toastContainer.removeChild(toast);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Show error message
+        function showError(message) {
+            showToast(message, 'error');
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            showToast(message, 'success');
+        }
+
+        // Show info message
+        function showInfo(message) {
+            showToast(message, 'info');
+        }
+
+        // Initialize rating stars interaction
+        document.addEventListener('DOMContentLoaded', function() {
+            const stars = document.querySelectorAll('#ratingStarsInput span');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    currentRating = parseInt(this.getAttribute('data-rating'));
+                    const stars = document.querySelectorAll('#ratingStarsInput span');
+                    stars.forEach((s, index) => {
+                        s.textContent = index < currentRating ? '★' : '☆';
+                    });
+                });
+                
+                // Add hover effect for better UX
+                star.addEventListener('mouseover', function() {
+                    const hoverRating = parseInt(this.getAttribute('data-rating'));
+                    const stars = document.querySelectorAll('#ratingStarsInput span');
+                    stars.forEach((s, index) => {
+                        s.textContent = index < hoverRating ? '★' : '☆';
+                    });
+                });
+            });
+            
+            // Reset stars when mouse leaves (if no rating selected)
+            document.getElementById('ratingStarsInput').addEventListener('mouseleave', function() {
+                if (currentRating === 0) {
+                    const stars = document.querySelectorAll('#ratingStarsInput span');
+                    stars.forEach(star => {
+                        star.textContent = '☆';
+                    });
+                } else {
+                    const stars = document.querySelectorAll('#ratingStarsInput span');
+                    stars.forEach((s, index) => {
+                        s.textContent = index < currentRating ? '★' : '☆';
+                    });
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
