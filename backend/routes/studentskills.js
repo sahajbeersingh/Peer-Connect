@@ -50,4 +50,26 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/:student_id", async (req, res) => {
+  const { student_id } = req.params;
+
+  const { data, error } = await supabase
+    .from("student_skills")
+    .select(`
+      level,
+      skills(name)
+    `)
+    .eq("student_id", student_id);
+
+  if (error) return res.status(400).json({ error: error.message });
+
+  // Flatten skill name for cleaner frontend display
+  const formatted = data.map(item => ({
+    skill_name: item.skills.name,
+    level: item.level
+  }));
+
+  res.json(formatted);
+});
+
 export default router;
