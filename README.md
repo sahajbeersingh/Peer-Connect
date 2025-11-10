@@ -69,6 +69,7 @@ Example endpoints:
 | `GET` | `/api/students/:id` | Get student by ID |
 | `POST` | `/api/students` | Add a student |
 | `GET` | `/api/skills` | Get all skills |
+| `GET` | `/api/student-skills/:id` | Get skills of a particular student by ID|
 | `GET` | `/api/skills/:id` | Get skill by ID |
 | `POST` | `/api/requests` | Create a help request |
 | `POST` | `/api/ratings` | Rate a helper |
