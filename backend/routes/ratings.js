@@ -1,5 +1,5 @@
 import express from "express";
-import supabase from '../config/supabaseClient.js';
+import supabase from "../config/supabaseClient.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -31,6 +31,23 @@ router.post("/", async (req, res) => {
       rater_id,
       rating: data[0],
     });
+    const { data: assignmentRow, error: assignErr } = await supabase
+      .from("assignments")
+      .select("request_id, helper_id")
+      .eq("id", assignment_id)
+      .single();
+
+    if (assignErr) {
+      console.error("Failed to fetch assignment for rating:", assignErr);
+    } else {
+      const requestIdToClose = assignmentRow.request_id;
+      const { error: updateErr } = await supabase
+        .from("help_requests")
+        .update({ status: "Closed" })
+        .eq("id", requestIdToClose);
+
+      if (updateErr) console.error("Failed to close help_request:", updateErr);
+    }
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
