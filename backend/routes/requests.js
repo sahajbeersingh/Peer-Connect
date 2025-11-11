@@ -62,6 +62,47 @@ router.post("/", async (req, res) => {
   }
 });
 
+// router.get("/", async (req, res) => {
+//   const { data, error } = await supabase
+//     .from("help_requests")
+//     .select(`
+//       id,
+//       title,
+//       description,
+//       status,
+//       meeting_link,
+//       skill_id,
+//       requester_id,
+//       assignments (
+//         helper_id,
+//         remarks,
+//         students!assignments_helper_id_fkey (
+//           name,
+//           email
+//         )
+//       )
+//     `)
+//     .order("id", { ascending: false });
+
+//   if (error) return res.status(400).json({ error: error.message });
+//   const formatted = data.map(r => ({
+//     id: r.id,
+//     title: r.title,
+//     description: r.description,
+//     status: r.status,
+//     meeting_link: r.meeting_link,
+//     skill_id: r.skill_id,
+//     requester_id: r.requester_id,
+//     helper_name: r.assignments?.students?.name || null,
+//     helper_email: r.assignments?.students?.email || null,
+//     remarks: r.assignments?.remarks || null
+//   }));
+
+//   res.json(formatted);
+// });
+
+
+
 router.get("/", async (req, res) => {
   const { data, error } = await supabase
     .from("help_requests")
@@ -74,29 +115,41 @@ router.get("/", async (req, res) => {
       skill_id,
       requester_id,
       assignments (
+        id, 
         helper_id,
         remarks,
         students!assignments_helper_id_fkey (
           name,
           email
-        )
+        ),
+        ratings ( id ) 
       )
     `)
     .order("id", { ascending: false });
 
   if (error) return res.status(400).json({ error: error.message });
-  const formatted = data.map(r => ({
-    id: r.id,
-    title: r.title,
-    description: r.description,
-    status: r.status,
-    meeting_link: r.meeting_link,
-    skill_id: r.skill_id,
-    requester_id: r.requester_id,
-    helper_name: r.assignments?.students?.name || null,
-    helper_email: r.assignments?.students?.email || null,
-    remarks: r.assignments?.remarks || null
-  }));
+  
+  const formatted = data.map(r => {
+    const assignment = r.assignments; 
+    
+    return {
+      id: r.id,
+      title: r.title,
+      description: r.description,
+      status: r.status,
+      meeting_link: r.meeting_link,
+      skill_id: r.skill_id,
+      requester_id: r.requester_id,
+
+      assignment_id: assignment?.id || null, 
+
+      helper_name: assignment?.students?.name || null,
+      helper_email: assignment?.students?.email || null,
+      remarks: assignment?.remarks || null,
+
+      isRated: assignment?.ratings && assignment.ratings.length > 0 
+    };
+  });
 
   res.json(formatted);
 });
